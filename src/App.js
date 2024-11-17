@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FiPlusCircle, FiColumns } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import RelationshipGraph from './grapich';
+import BasicModal from './modal';
 
 function hungarianMethod(costMatrix) {
   const n = costMatrix.length;
@@ -214,7 +215,24 @@ const App = () => {
   const [results, setResults] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [matrixSteps, setMatrixSteps] = useState([]);
+  const [showInstructions, setShowInstructions] = useState(false);
 
+
+  const InstructionsModal = ({ onClose }) => {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <h2>Instrucciones de uso</h2>
+          <p>Instrucciones detalladas sobre cómo usar la aplicación.</p>
+          <button onClick={onClose}>Cerrar</button>
+        </div>
+      </div>
+    );
+  };
+
+  const toggleInstructions = () => {
+    setShowInstructions(!showInstructions);
+  };
 
   const handleCostMatrixChange = (row, col, value) => {
     const parsedValue = parseFloat(value);
@@ -324,10 +342,10 @@ const App = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen items-center  backdrop-blur-lg bg-center bg-cover bg-[url('../public/back.jpg')]">
+    <div className="flex flex-col h-screen items-center  bg-gradient-to-b from-gray-100 via-white to-gray-200">
       <div className="flex  items-center justify-center p-6  rounded-full">
         <h1 className="text-5xl font-bold leading-none text-gray-900 md:text-6xl lg:text-7xl mx-auto mb-8 text-center">
-          <span className="bg-gradient-to-r from-white via-blue-200 to-cyan-200 bg-clip-text text-transparent ">
+          <span className="bg-gradient-to-r from-cyan-200 via-blue-400 to-cyan-200 bg-clip-text text-transparent ">
             SolveOps
           </span>
         </h1>
@@ -381,8 +399,9 @@ const App = () => {
         </div>
 
         <div className="flex justify-center mt-8">
+        {BasicModal()}
           <button
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-200 transform hover:scale-105"
+            className=" ml-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-200 transform hover:scale-105"
             onClick={runHungarianMethod}
           >
             Método Húngaro
@@ -399,8 +418,9 @@ const App = () => {
           >
             Limpiar
           </button>
-        </div>
+          
 
+        </div>
         {results && (
           <div className="mt-10 bg-indigo-100 rounded-lg p-6 shadow-inner">
             <h2 className="text-xl font-semibold mb-4 text-indigo-700">{results.method} Resultados</h2>
