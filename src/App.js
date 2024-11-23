@@ -389,11 +389,13 @@ const renderMatrixSteps = () => (
 );
 
 
-  const handleReset = () => {
-    setCostMatrix([[]]);
-    setResults(null);
-    setChartData([]);
-  }
+const handleReset = () => {
+  setCostMatrix([[]]); // Reinicia la matriz de costos a un estado vacío
+  setResults(null);    // Limpia los resultados
+  setChartData([]);    // Limpia los datos del gráfico
+  setMatrixSteps([]);  // Limpia los pasos de la matriz
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-100 via-white to-gray-200 px-4 py-6">
