@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { FiPlusCircle, FiColumns } from 'react-icons/fi';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import RelationshipGraph from './grapich';
 import BasicModal from './modal';
 
@@ -120,81 +119,115 @@ const processMatrix = (matrix) => {
 // Implementación del método de Vogel
 function vogelMethod(costMatrix) {
   const matrix = costMatrix.map(row => [...row]);
-  const supply = Array(matrix.length).fill(1);  // Oferta de cada origen
-  const demand = Array(matrix[0].length).fill(1); // Demanda de cada destino
+  const supply = [1, 1, 1];  // Oferta específica para este problema
+  const demand = [1, 1, 1, 1]; // Demanda específica para este problema
   let allocation = [];
   let totalCost = 0;
-  let matrixSteps = [];  // Para guardar los pasos
+  let matrixSteps = [];
+  let stepNumber = 1;
 
   // Guardar el estado inicial
   matrixSteps.push({
-    step: "Matriz inicial",
-    matrix: matrix.map(row => [...row])
+    step: `Paso ${stepNumber}: Matriz inicial`,
+    matrix: matrix.map(row => [...row]),
+    supply: [...supply],
+    demand: [...demand]
   });
 
   while (supply.some(s => s > 0) && demand.some(d => d > 0)) {
-    // Calcular penalizaciones
+    stepNumber++;
+    
+    // Calcular penalizaciones por fila
     const rowPenalties = [];
-    const colPenalties = [];
-
-    // Penalizaciones por fila
     for (let i = 0; i < matrix.length; i++) {
       if (supply[i] <= 0) continue;
-      const availableCosts = matrix[i]
-        .map((cost, j) => ({ cost, j }))
-        .filter(({ j }) => demand[j] > 0)
-        .map(({ cost }) => cost);
-      
+      const availableCosts = [];
+      for (let j = 0; j < matrix[0].length; j++) {
+        if (demand[j] > 0 && matrix[i][j] !== Infinity) {
+          availableCosts.push(matrix[i][j]);
+        }
+      }
       if (availableCosts.length >= 2) {
         const sorted = [...availableCosts].sort((a, b) => a - b);
-        rowPenalties.push({ index: i, penalty: sorted[1] - sorted[0] });
+        rowPenalties.push({
+          index: i,
+          penalty: sorted[1] - sorted[0]
+        });
+      } else if (availableCosts.length === 1) {
+        rowPenalties.push({
+          index: i,
+          penalty: availableCosts[0]
+        });
       }
     }
 
-    // Penalizaciones por columna
+    // Calcular penalizaciones por columna
+    const colPenalties = [];
     for (let j = 0; j < matrix[0].length; j++) {
       if (demand[j] <= 0) continue;
-      const availableCosts = matrix
-        .map((row, i) => ({ cost: row[j], i }))
-        .filter(({ i }) => supply[i] > 0)
-        .map(({ cost }) => cost);
-      
+      const availableCosts = [];
+      for (let i = 0; i < matrix.length; i++) {
+        if (supply[i] > 0 && matrix[i][j] !== Infinity) {
+          availableCosts.push(matrix[i][j]);
+        }
+      }
       if (availableCosts.length >= 2) {
         const sorted = [...availableCosts].sort((a, b) => a - b);
-        colPenalties.push({ index: j, penalty: sorted[1] - sorted[0] });
+        colPenalties.push({
+          index: j,
+          penalty: sorted[1] - sorted[0]
+        });
+      } else if (availableCosts.length === 1) {
+        colPenalties.push({
+          index: j,
+          penalty: availableCosts[0]
+        });
       }
     }
 
-    // Guardar el paso de cálculo de penalizaciones
+    // Guardar el estado con penalizaciones
     matrixSteps.push({
-      step: "Cálculo de penalizaciones",
+      step: `Paso ${stepNumber}: Cálculo de penalizaciones`,
       matrix: matrix.map(row => [...row]),
-      rowPenalties,
-      colPenalties
+      rowPenalties: [...rowPenalties],
+      colPenalties: [...colPenalties],
+      supply: [...supply],
+      demand: [...demand]
     });
 
     // Encontrar la mayor penalización
-    const maxRowPenalty = Math.max(...rowPenalties.map(p => p.penalty), 0);
-    const maxColPenalty = Math.max(...colPenalties.map(p => p.penalty), 0);
+    const maxRowPenalty = Math.max(...rowPenalties.map(p => p.penalty), -Infinity);
+    const maxColPenalty = Math.max(...colPenalties.map(p => p.penalty), -Infinity);
 
     let selectedRow, selectedCol;
 
     if (maxRowPenalty >= maxColPenalty) {
-      const rowIndex = rowPenalties.find(p => p.penalty === maxRowPenalty)?.index;
+      const rowIndex = rowPenalties.find(p => p.penalty === maxRowPenalty).index;
       selectedRow = rowIndex;
-      selectedCol = matrix[rowIndex]
-        .map((cost, j) => ({ cost, index: j }))
-        .filter((_, j) => demand[j] > 0)
-        .reduce((min, curr) => curr.cost < min.cost ? curr : min).index;
+      
+      // Encontrar el menor costo en la fila seleccionada
+      let minCost = Infinity;
+      for (let j = 0; j < matrix[0].length; j++) {
+        if (demand[j] > 0 && matrix[selectedRow][j] !== Infinity && matrix[selectedRow][j] < minCost) {
+          minCost = matrix[selectedRow][j];
+          selectedCol = j;
+        }
+      }
     } else {
-      const colIndex = colPenalties.find(p => p.penalty === maxColPenalty)?.index;
+      const colIndex = colPenalties.find(p => p.penalty === maxColPenalty).index;
       selectedCol = colIndex;
-      selectedRow = matrix
-        .map((row, i) => ({ cost: row[colIndex], index: i }))
-        .filter((_, i) => supply[i] > 0)
-        .reduce((min, curr) => curr.cost < min.cost ? curr : min).index;
+      
+      // Encontrar el menor costo en la columna seleccionada
+      let minCost = Infinity;
+      for (let i = 0; i < matrix.length; i++) {
+        if (supply[i] > 0 && matrix[i][selectedCol] !== Infinity && matrix[i][selectedCol] < minCost) {
+          minCost = matrix[i][selectedCol];
+          selectedRow = i;
+        }
+      }
     }
 
+    // Realizar la asignación
     const quantity = Math.min(supply[selectedRow], demand[selectedCol]);
     allocation.push({
       row: selectedRow + 1,
@@ -207,43 +240,30 @@ function vogelMethod(costMatrix) {
     supply[selectedRow] -= quantity;
     demand[selectedCol] -= quantity;
 
-    // Guardar el paso de asignación
+    // Marcar la celda como usada
+    matrix[selectedRow][selectedCol] = Infinity;
+
+    stepNumber++;
+    // Guardar el estado después de la asignación
     matrixSteps.push({
-      step: "Asignación realizada",
+      step: `Paso ${stepNumber}: Asignación realizada`,
       matrix: matrix.map(row => [...row]),
-      allocation: [...allocation]
+      allocation: [...allocation],
+      supply: [...supply],
+      demand: [...demand],
+      lastAssignment: {
+        row: selectedRow + 1,
+        col: selectedCol + 1,
+        cost: costMatrix[selectedRow][selectedCol]
+      }
     });
   }
 
   return { allocation, totalCost, matrixSteps };
 }
 
-
 // Funciones auxiliares para el método de Vogel
-function calculatePenalties(matrix, rows, cols, isRow) {
-  return (isRow ? rows : cols).map(i => {
-    const values = (isRow ? cols : rows).map(j => {
-      const val = isRow ? matrix[i][j] : matrix[j][i];
-      return val === Number.MAX_SAFE_INTEGER ? Infinity : val;
-    }).filter(val => val !== Infinity);
-    
-    if (values.length < 2) return { index: i, penalty: 0 };
-    
-    const sorted = [...values].sort((a, b) => a - b);
-    return {
-      index: i,
-      penalty: sorted[1] - sorted[0]
-    };
-  });
-}
 
-function findMinCostCell(matrix, fixedIndex, indices, isRow = true) {
-  return indices.reduce((minIndex, currentIndex) => {
-    const currentCost = isRow ? matrix[fixedIndex][currentIndex] : matrix[currentIndex][fixedIndex];
-    const minCost = isRow ? matrix[fixedIndex][minIndex] : matrix[minIndex][fixedIndex];
-    return currentCost < minCost ? currentIndex : minIndex;
-  }, indices[0]);
-}
 
 
 
